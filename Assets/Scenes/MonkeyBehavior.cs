@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Xml.Serialization;
 using Unity.Collections;
 using Unity.VisualScripting;
@@ -20,12 +21,19 @@ public class MonkeyBehavior : MonoBehaviour
     public MonkeyState _previousState;
     public MonkeyState _currentState;
     public MonkeyState _nextState;
-    public Vector2 Position;
+
+    public enum MonkeyPosition{
+        OnTruck,
+        OnBranch,
+        NotInPicture
+    }
+    public MonkeyPosition _currentPosition;
+    public UnityEngine.Vector2 Position;
     // Start is called before the first frame update
     void Start()
     {
         _currentState=MonkeyState.Despawn;
-        Position=new Vector2(this.transform.position.x,this.transform.position.y);
+        Position=new UnityEngine.Vector2(this.transform.position.x,this.transform.position.y);
     }
 
     IEnumerator Wait(int time){
@@ -39,12 +47,14 @@ public class MonkeyBehavior : MonoBehaviour
     }
 
     void Walking(){ //walking left and right on current small branch
-
+        float waitTime=Random.Range(2,4);
+        float walkTime=Random.Range(1,3);
     }
 
-    void Climbing(Vector2 target){ //Climb up and down on current big branch
+    void MoveToward(UnityEngine.Vector3 target){ //Climb up and down on current big branch
         if (target!=null){
-
+            UnityEngine.Vector3 verticalMovement=target - transform.position;
+            this.transform.position += verticalMovement * 0.2f;
         }
     }
 
@@ -53,20 +63,22 @@ public class MonkeyBehavior : MonoBehaviour
     }
 
     void Despawning(){ //despawn
-        Vector2 leftEnd=new Vector2 (-1,-1);
-        Vector2 rightEnd=new Vector2 (1,1);
+        UnityEngine.Vector2 leftEnd=new UnityEngine.Vector2 (-1,-1);
+        UnityEngine.Vector2 rightEnd=new UnityEngine.Vector2 (1,1);
         if (Position.x<=0){
-            Climbing(leftEnd);
+            MoveToward(leftEnd);
         }
         else{
-            Climbing(rightEnd);
+            MoveToward(rightEnd);
         }
         
     }
     // Update is called once per frame
     void Update()
     {
-        Position=new Vector2(this.transform.position.x,this.transform.position.y);
-        
+        Position=new UnityEngine.Vector2(this.transform.position.x,this.transform.position.y);
+        switch (_currentState){
+
+        }
     }
 }
