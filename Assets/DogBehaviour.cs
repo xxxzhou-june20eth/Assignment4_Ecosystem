@@ -1,30 +1,36 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEditor.U2D;
 using UnityEngine;
 
-public class CharacterBehaviour : MonoBehaviour
+public class DogBehaviour : MonoBehaviour
 {
     public enum State
     {
-        Working,
+        Eating,
         Sleeping,
-        Exercising,
+        Playing,
+        Jumping,
         GoOut
     }
     public float speed;
-    public float ExerciseTime;
-    public GameObject Bed;
-    public GameObject Desk;
-    public GameObject Yoga;
+    public float eatTime;
+    public float jumpTime;
+    public float jumpForce;
+    public Vector3 maximumPosition;
+    public GameObject DogBed;
+    public GameObject HumanBed;
+    public GameObject Table;
     public GameObject Outside;
     public GameObject Destination;
-
+    public CharacterBehaviour Human;
     public Sprite sleep;
-    public Sprite work;
-    public Sprite exercise;
+    public Sprite eat;
+    public Sprite jump;
     public Sprite idle;
     public SpriteRenderer spriter;
     public State[] ThingsToBeDone; // Array of states for the character to execute
@@ -35,7 +41,7 @@ public class CharacterBehaviour : MonoBehaviour
     void Start()
     {
         // Initialize the sequence of tasks
-        ThingsToBeDone = new State[] { State.Working, State.Exercising, State.GoOut, State.Sleeping };
+        ThingsToBeDone = new State[] {State.Eating,  State.Jumping, State.GoOut, State.Sleeping};
         CurrentState = ThingsToBeDone[0];
         NextState();
 
@@ -74,17 +80,17 @@ public class CharacterBehaviour : MonoBehaviour
         isBusy = true; // Character is now busy
         switch (CurrentState)
         {
-            case State.Working:
-                StartCoroutine(Work());
-                break;
             case State.Sleeping:
                 StartCoroutine(Sleep());
                 break;
-            case State.Exercising:
-                StartCoroutine(Exercise());
+            case State.Eating:
+                StartCoroutine(Eat());
                 break;
             case State.GoOut:
                 StartCoroutine(WalkDog());
+                break;
+            case State.Jumping:
+                StartCoroutine(Jump());
                 break;
         }
     }
@@ -102,9 +108,16 @@ public class CharacterBehaviour : MonoBehaviour
         else
         {
             // When the task list is empty, shuffle and reset
-            State[] newTasks = new State[] { State.Working, State.Exercising, State.GoOut};
+            State[] newTasks = new State[] {State.Eating, State.Jumping,State.Sleeping};
             ShuffleArray(newTasks);
-            ThingsToBeDone = new State[] {newTasks[0],newTasks[1],newTasks[2], State.Sleeping};
+            int i=0;
+            while (Human.ThingsToBeDone[i]!=CharacterBehaviour.State.GoOut){
+                i+=1;
+            }
+            ThingsToBeDone = new State[] {newTasks[0],newTasks[1],State.GoOut,newTasks[2]};
+            State temp=ThingsToBeDone[i];
+            ThingsToBeDone[i]=State.GoOut;
+            ThingsToBeDone[2]=temp;
             CurrentState = ThingsToBeDone[0];
             ChangeState(CurrentState);
             moving=true;
@@ -115,14 +128,14 @@ public class CharacterBehaviour : MonoBehaviour
     {
         switch (newState)
         {
-            case State.Working:
-                Destination=Desk;
+            case State.Eating:
+                Destination=Table;
                 break;
             case State.Sleeping:
-                Destination=Bed;
+                Destination=DogBed;
                 break;
-            case State.Exercising:
-                Destination=Yoga;
+            case State.Jumping:
+                Destination=HumanBed;
                 break;
             case State.GoOut:
                 Destination=Outside;
@@ -142,66 +155,74 @@ public class CharacterBehaviour : MonoBehaviour
         }
     }
 
-    IEnumerator Work(){
-        spriter.sprite=work;
+    IEnumerator Eat(){
+        print("Dog eat");
+        spriter.sprite=eat;
         float WorkTime = 0f;
         Color currentColor=GetComponent<SpriteRenderer>().color;
-
-        while (WorkTime < 5)
-        {
-            float t = Time.deltaTime / 4;
-            currentColor.g = Mathf.Lerp(currentColor.g, 0f, t); //change the percentage of red based on time passed;
-            currentColor.b = Mathf.Lerp(currentColor.b, 0f, t);
-            GetComponent<SpriteRenderer>().color = currentColor;
-            WorkTime += Time.deltaTime;
-            yield return null;
-        }
-        isBusy=false;
-        GetComponent<SpriteRenderer>().color = Color.white;
-        print("Work Done");
-    }
-
-    IEnumerator Exercise(){
-        spriter.sprite=exercise;
-        print("Start Exercising");
-        float WorkTime = 0f;
         float t=0;
 
         while (WorkTime < 5)
         {
-            if (t>ExerciseTime){
+            if (t>eatTime){
                 t=0;
-                this.transform.localScale=new UnityEngine.Vector3(3,2,1);
+                this.transform.rotation=Quaternion.Euler(0,0,15);
             }
             else{
                 t+=Time.deltaTime;
-                if (t>ExerciseTime/2){
-                    this.transform.localScale=new UnityEngine.Vector3(3,3,1);
+                if (t>eatTime/2){
+                    this.transform.rotation=quaternion.identity;
                 }
             }
             WorkTime += Time.deltaTime;
             yield return null;
         }
         isBusy=false;
-        print("Exercise Done");
+        this.transform.rotation=quaternion.identity;
+        print("Eat Done");
+    }
+
+    IEnumerator Jump(){
+        spriter.sprite=jump;
+        print("Dog Jump");
+        float WorkTime = 0f;
+        float t=0;
+
+        while (WorkTime < 5)
+        {
+            if (t>jumpTime){
+                t=0;
+            }
+            else{
+                if (t>jumpTime/2){
+                    this.transform.position=Vector3.Lerp(this.transform.position,maximumPosition,0.2f);
+                }
+                else{
+                    this.transform.position=Vector3.Lerp(this.transform.position,HumanBed.transform.position,0.2f);
+                }
+                t+=Time.deltaTime;
+            }
+            WorkTime += Time.deltaTime;
+            yield return null;
+        }
+        isBusy=false;
+        print("Jump Done");
     }
 
     IEnumerator Sleep()
     {
         spriter.sprite=sleep;
-        Debug.Log("Character is sleeping.");
-        this.transform.rotation = Quaternion.Euler(0, 0, 40);
+        Debug.Log("Dog sleep.");
         yield return new WaitForSeconds(5);
-        this.transform.rotation = Quaternion.identity;
         isBusy = false;
-        print("Character woke up");
+        print("Dog woke up");
     }
 
     IEnumerator WalkDog()
     {
-        Debug.Log("Character is walking the dog.");
+        Debug.Log("Dog walk.");
         yield return new WaitForSeconds(5);
         isBusy = false;
-        print ("Character come back");
+        print ("Dog come back");
     }
 }
