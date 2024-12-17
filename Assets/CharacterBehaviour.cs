@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEditor.U2D;
 using UnityEngine;
 
 public class CharacterBehaviour : MonoBehaviour
